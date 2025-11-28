@@ -1,0 +1,19 @@
+name: Update parent repo on push to main
+
+on: 
+  push:
+    branches: 
+      - main
+
+jobs:
+  trigger-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger parent repo update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: nxsaloj/go_cc
+          event-type: update-submodule
+          client-payload: '{"submodule": "ccwc"}'
+          

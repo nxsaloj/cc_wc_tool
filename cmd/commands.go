@@ -19,6 +19,68 @@ func Execute() {
 	}
 }
 
+// stdinHasData returns true if stdin is coming from a pipe/redirected input.
+func stdinHasData() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+
+	// If it's NOT a char device, it means it's piped/redirected
+	return (info.Mode() & os.ModeCharDevice) == 0
+}
+
+// rootRun is the main function that runs when the root command is executed.
+func rootRun(cmd *cobra.Command, args []string) {
+	var filename string
+	if len(args) > 0 {
+		filename = args[0]
+	}
+
+	flagsUsed := false
+
+	if cmd.Flags().Changed("bytes") {
+		flagsUsed = true
+		if err := handleCommand(filename, "c"); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+
+	if cmd.Flags().Changed("lines") {
+		flagsUsed = true
+		if err := handleCommand(filename, "l"); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+
+	if cmd.Flags().Changed("words") {
+		flagsUsed = true
+		if err := handleCommand(filename, "w"); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+
+	if cmd.Flags().Changed("multibytes") {
+		flagsUsed = true
+		if err := handleCommand(filename, "m"); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+
+	if !flagsUsed {
+		commands := []string{"l", "w", "c"}
+
+		if err := handleCommands(filename, commands); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	}
+}
+
 // rootCmd represents the root command for the application.
 var rootCmd = &cobra.Command{
 	Use:   "ccwc",
@@ -26,62 +88,20 @@ var rootCmd = &cobra.Command{
 	Long: `A word count tool based on unix wc tool built
 for learning Golang by nxcrypt.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// When no subcommand is provided, show help
-		return cmd.Help()
+		hasFlags := cmd.Flags().NFlag() > 0
+		hasArgs := len(args) > 0
+		hasStdin := stdinHasData()
+
+		// No flags, no args, no stdin -> user just typed `ccwc`
+		if !hasFlags && !hasArgs && !hasStdin {
+			return cmd.Help()
+		}
+
+		// Continue with normal behavior (your Run logic).
+		rootRun(cmd, args)
+		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var filename string
-		if len(args) > 0 {
-			filename = args[0]
-		}
-
-		var flagsUsed bool = false
-		if cmd.Flags().Changed("bytes") {
-			flagsUsed = true
-			err := handleCommand(filename, "c")
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-		}
-
-		if cmd.Flags().Changed("lines") {
-			flagsUsed = true
-			err := handleCommand(filename, "l")
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-		}
-
-		if cmd.Flags().Changed("words") {
-			flagsUsed = true
-			err := handleCommand(filename, "w")
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-		}
-
-		if cmd.Flags().Changed("multibytes") {
-			flagsUsed = true
-			err := handleCommand(filename, "m")
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-		}
-
-		if !flagsUsed {
-			commands := []string{"l", "w", "c"}
-
-			err := handleCommands(filename, commands)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return
-			}
-		}
-	},
+	Run: rootRun,
 }
 
 // init initializes the flags for the root command.

@@ -33,7 +33,7 @@ var singleCommandTests = []struct {
 		name:    "Count bytes",
 		command: "c",
 		expected: []int{
-			0,
+			1,
 			5,
 			18,
 			23,

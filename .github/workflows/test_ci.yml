@@ -1,0 +1,36 @@
+name: Verify tests on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+            go-version-file: 'go.mod'
+
+      - name: Install and Download Dependencies
+        run: |
+            go mod tidy
+            mkdir -p tests
+            curl -L -o tests/test.txt https://www.dropbox.com/scl/fi/d4zs6aoq6hr3oew2b6a9v/test.txt?rlkey=20c9d257pxd5emjjzd1gcbn03&e=3&dl=1
+
+      - name: Cache Go Modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run Tests
+        run: go test -v ./...

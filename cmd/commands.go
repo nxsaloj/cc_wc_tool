@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 	Use:   "ccwc",
 	Short: "Ccwc is a word count tool",
 	Long: `A word count tool based on unix wc tool built
-for learning Golang by nxcrypt.`,
+for learning Golang by nxcrypt`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// When no subcommand is provided, show help
 		return cmd.Help()
